@@ -23,7 +23,7 @@ func authUser(mu2f *u2f.U2F, r *http.Request) (u2f.User, error) {
 
 	// for now we hardcode test, a real example might look like:
 	//	user := r.URL.Query()["username"]
-	//	if len(user) == 0 {
+	//	if user == "" {
 	//		http.Error(w, fmt.Sprintf("no username passed"), 500)
 	//		return ""
 	//	}
@@ -65,7 +65,7 @@ func (ud *userDB) PutUser(u u2f.User) {
 	if ud.Users == nil {
 		ud.Users = make(map[string]u2f.User)
 	}
-	if len(u.User) == 0 {
+	if u.User == "" {
 		panic("wtf")
 	}
 	ud.Users[u.User] = u
@@ -85,7 +85,7 @@ func main() {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		if len(u.User) == 0 {
+		if u.User == "" {
 			panic("WTF")
 		}
 

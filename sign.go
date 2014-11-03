@@ -20,10 +20,13 @@ func (u2f *U2F) Sign(u User) (SignJSON, error) {
 		return SignJSON{}, fmt.Errorf("User '%s' has no keyhandle", u.User)
 	}
 
-	c, err := u2f.NewChallenge()
+	c, err := u2f.Challenge()
 	if err != nil {
 		return SignJSON{}, err
 	}
+
+	u.Challenge = c
+	u2f.UserList.PutUser(u)
 
 	e := SignJSON{
 		KeyHandle: u.KeyHandle,
@@ -31,10 +34,6 @@ func (u2f *U2F) Sign(u User) (SignJSON, error) {
 		AppID:     u2f.AppID,
 		Version:   u2f.Version,
 	}
-	u.SignChallenge = c
-
-	u2f.UserList.PutUser(u)
-
 	return e, nil
 
 }

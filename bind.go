@@ -20,7 +20,7 @@ func (u2f *U2F) Bind(u User, r io.Reader) error {
 		return fmt.Errorf("User '%s' already enrolled", u.User)
 	}
 
-	if len(u.Enrolling.Challenge) == 0 {
+	if u.Challenge == "" {
 		return fmt.Errorf("user has not started enroll")
 	}
 
@@ -44,7 +44,7 @@ func (u2f *U2F) Bind(u User, r io.Reader) error {
 		return fmt.Errorf("malformed JSON, missing registrationData")
 	}
 
-	err = u2f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Enrolling.Challenge)
+	err = u2f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Challenge)
 	if err != nil {
 		return err
 	}
@@ -75,9 +75,9 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 	}
 
 	pubKey := data[1 : PubKeyLen+1]
-	pubKeyCert, err := pemToCert(pubKey)
+	pubDer, err := pubKeyDer(pubKey)
 	if err != nil {
-		return fmt.Errorf("pubKeyBad: %s", err)
+		return err
 	}
 
 	data = data[1+PubKeyLen : len(data)]
@@ -99,7 +99,7 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 		return err
 	}
 
-	app := sha256.Sum256([]byte(u.Enrolling.AppID))
+	app := sha256.Sum256([]byte(u2f.AppID))
 
 	// xxx we already have done this up above
 	cd, err := base64.URLEncoding.DecodeString(b.ClientData)
@@ -120,9 +120,9 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 	}
 
 	u.KeyHandle = base64.URLEncoding.EncodeToString(keyHandle)
-	u.Cert = cert
-	u.PubKey = pubKeyCert
-	u.Enrolling = EnrollJSON{}
+	u.Cert = base64.URLEncoding.EncodeToString(cert.Raw)
+	u.PubKey = base64.URLEncoding.EncodeToString(pubDer)
+	u.Challenge = ""
 	u.Enrolled = true
 	u2f.UserList.PutUser(u)
 
@@ -131,12 +131,13 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 
 var derPrefix = []byte("\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x03\x42\x00")
 
-func pemToCert(cert []byte) (*x509.Certificate, error) {
+func pubKeyDer(cert []byte) ([]byte, error) {
 	c := append(derPrefix, cert...)
-	key, err := x509.ParsePKIXPublicKey(c)
+	// validate it
+	_, err := x509.ParsePKIXPublicKey(c)
 	if err != nil {
 		return nil, err
 	}
 
-	return &x509.Certificate{PublicKey: key}, err
+	return c, nil
 }

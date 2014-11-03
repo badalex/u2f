@@ -27,8 +27,7 @@ func (u2f *U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 	if !u.Enrolled {
 		return vj, fmt.Errorf("User '%s' not enrolled", u.User)
 	}
-
-	if u.SignChallenge == "" {
+	if u.Challenge == "" {
 		return vj, fmt.Errorf("No SignChallenge")
 	}
 
@@ -48,7 +47,7 @@ func (u2f *U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 		return vj, err
 	}
 
-	err = u2f.validateClientData("navigator.id.getAssertion", b.ClientData, u.SignChallenge)
+	err = u2f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Challenge)
 	if err != nil {
 		return vj, err
 	}
@@ -93,7 +92,12 @@ func (u2f *U2F) validateSignatureData(b verifyJSON, u User) (up byte, counter ui
 	verify = append(verify, data[0:5]...)
 	verify = append(verify, cdHash[:]...)
 
-	err = u.PubKey.CheckSignature(x509.ECDSAWithSHA256, verify, sig)
+	cert, err := pubKeyCert(u.PubKey)
+	if err != nil {
+		return up, counter, err
+	}
+
+	err = cert.CheckSignature(x509.ECDSAWithSHA256, verify, sig)
 	if err != nil {
 		return up, counter, err
 	}
@@ -106,4 +110,18 @@ func (u2f *U2F) validateSignatureData(b verifyJSON, u User) (up byte, counter ui
 	u2f.UserList.PutUser(u)
 
 	return up, counter, nil
+}
+
+func pubKeyCert(pub string) (*x509.Certificate, error) {
+	data, err := base64.URLEncoding.DecodeString(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := x509.ParsePKIXPublicKey(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &x509.Certificate{PublicKey: key}, nil
 }
