@@ -1,9 +1,5 @@
 package u2f
 
-import (
-	"fmt"
-)
-
 type EnrollJSON struct {
 	Version   string `json:"version"`
 	AppID     string `json:"appId"`
@@ -11,9 +7,9 @@ type EnrollJSON struct {
 }
 
 func (u2f U2F) Enroll(u User) (r EnrollJSON, err error) {
-	if u.Enrolled {
-		return r, fmt.Errorf("User '%s' already enrolled", u.User)
-	}
+	//if u.Enrolled {
+	//	return r, fmt.Errorf("User '%s' already enrolled", u.User)
+	//}
 
 	c, err := u2f.Challenge()
 	if err != nil {

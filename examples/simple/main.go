@@ -132,5 +132,6 @@ func main() {
 		http.ServeFile(w, r, "index.html")
 	})
 
+	fmt.Println("Listening on :8079")
 	log.Fatal(http.ListenAndServeTLS(":8079", "cert.pem", "key.pem", nil))
 }

@@ -10,7 +10,6 @@ func unb64u(s string) ([]byte, error) {
 	if l := len(s) % 4; l != 0 {
 		s += strings.Repeat("=", 4-l)
 	}
-
 	return base64.URLEncoding.DecodeString(s)
 }
 

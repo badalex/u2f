@@ -21,8 +21,6 @@ func (u2f U2F) validateClientData(typ, clientData string, devs []Device) (dev *D
 		return dev, err
 	}
 
-	fmt.Printf("%s %s\n", clientData, data)
-
 	cd := clientDataJSON{}
 	err = json.Unmarshal(data, &cd)
 	if err != nil {

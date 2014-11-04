@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<script type="text/javascript"><!--
+function check_ext() {
+	if(!window.u2f) {
+		document.getElementById('ext').style.display = '';
+	}
+}
+-->
+</script>
+
 	<script src="/js/u2f.js"></script>
 	<script type="text/javascript" src="chrome-extension://pfboblefjcgdjicmnffhdgionmgcdmne/u2f-api.js"></script>
 	<title>U2F simple</title>
 </head>
 
-<body>
+<body onload="check_ext()">
 	<form>
 	<div>
 		<input type="button" value="Enroll" onclick="u2f_enroll();" />
 		<input type="button" value="Sign-in" onclick="u2f_sign();" />
 	</div>
 	<div id="msg"></div>
+	<div id="ext" style="display:none;">Note, Currently the <a target=_blank href="https://chrome.google.com/webstore/detail/fido-u2f-universal-2nd-fa/pfboblefjcgdjicmnffhdgionmgcdmne">FIDO U2F</a> Chrome extension is required</div>
 	</form>
 </body>
 
