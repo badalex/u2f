@@ -1,9 +1,6 @@
 package u2f
 
-import (
-	"crypto/rand"
-	"encoding/base64"
-)
+import "crypto/rand"
 
 func (u2f U2F) Challenge() (string, error) {
 	c := make([]byte, 32)
@@ -11,6 +8,5 @@ func (u2f U2F) Challenge() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	cs := base64.URLEncoding.EncodeToString(c)
-	return cs, nil
+	return b64u(c), nil
 }

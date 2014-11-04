@@ -1,7 +1,6 @@
 package u2f
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 )
@@ -17,10 +16,12 @@ func (u2f U2F) validateClientData(typ, clientData string, devs []Device) (dev *D
 		return dev, fmt.Errorf("Missing ClientData")
 	}
 
-	data, err := base64.URLEncoding.DecodeString(clientData)
+	data, err := unb64u(clientData)
 	if err != nil {
 		return dev, err
 	}
+
+	fmt.Printf("%s %s\n", clientData, data)
 
 	cd := clientDataJSON{}
 	err = json.Unmarshal(data, &cd)

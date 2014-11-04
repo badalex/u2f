@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,18 +19,9 @@ func (u2f U2F) Bind(u User, r io.Reader) error {
 	//	return fmt.Errorf("User '%s' already enrolled", u.User)
 	//}
 
-	buf := make([]byte, len("data="))
-	n, err := r.Read(buf)
-	if err != nil {
-		return err
-	}
-	if n != cap(buf) {
-		return fmt.Errorf("failed to read all of data")
-	}
-
 	j := json.NewDecoder(r)
 	b := bindJSON{}
-	err = j.Decode(&b)
+	err := j.Decode(&b)
 	if err != nil {
 		return err
 	}
@@ -66,7 +56,7 @@ type cert struct {
 }
 
 func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
-	data, err := base64.URLEncoding.DecodeString(b.RegistrationData)
+	data, err := unb64u(b.RegistrationData)
 	if err != nil {
 		return err
 	}
@@ -104,7 +94,7 @@ func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
 	app := sha256.Sum256([]byte(u2f.AppID))
 
 	// xxx we already have done this up above
-	cd, err := base64.URLEncoding.DecodeString(b.ClientData)
+	cd, err := unb64u(b.ClientData)
 	if err != nil {
 		return err
 	}
@@ -121,9 +111,9 @@ func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
 		return err
 	}
 
-	d.KeyHandle = base64.URLEncoding.EncodeToString(keyHandle)
-	d.Cert = base64.URLEncoding.EncodeToString(cert.Raw)
-	d.PubKey = base64.URLEncoding.EncodeToString(pubDer)
+	d.KeyHandle = b64u(keyHandle)
+	d.Cert = b64u(cert.Raw)
+	d.PubKey = b64u(pubDer)
 	d.Challenge = ""
 
 	return nil

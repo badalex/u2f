@@ -77,7 +77,7 @@ func main() {
 	var udb = userDB{}
 	var mu2f = &u2f.U2F{
 		Users:   &udb,
-		AppID:   "http://localhost:8081",
+		AppID:   "https://gou2f.com:8079",
 		Version: "U2F_V2",
 	}
 
@@ -124,5 +124,13 @@ func main() {
 		mu2f.SignHandler(u, w, r)
 	})
 
-	log.Fatal(http.ListenAndServe(":8079", nil))
+	http.HandleFunc("/js/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, r.URL.Path[1:])
+	})
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.html")
+	})
+
+	log.Fatal(http.ListenAndServeTLS(":8079", "cert.pem", "key.pem", nil))
 }

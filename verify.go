@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -25,15 +24,6 @@ type VerifyJSON struct {
 func (u2f U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 	if !u.Enrolled {
 		return vj, fmt.Errorf("User '%s' not enrolled", u.User)
-	}
-
-	buf := make([]byte, len("data="))
-	n, err := r.Read(buf)
-	if err != nil {
-		return vj, err
-	}
-	if n != cap(buf) {
-		return vj, fmt.Errorf("failed to read all of data")
 	}
 
 	j := json.NewDecoder(r)
@@ -65,7 +55,7 @@ func (u2f U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 }
 
 func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter uint32, err error) {
-	data, err := base64.URLEncoding.DecodeString(b.SignatureData)
+	data, err := unb64u(b.SignatureData)
 	if err != nil {
 		return up, counter, err
 	}
@@ -81,7 +71,7 @@ func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter 
 	sig := data[5:len(data)]
 
 	// xxx we already have done this up above
-	cd, err := base64.URLEncoding.DecodeString(b.ClientData)
+	cd, err := unb64u(b.ClientData)
 	if err != nil {
 		return up, counter, err
 	}
@@ -112,7 +102,7 @@ func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter 
 }
 
 func pubKeyCert(pub string) (*x509.Certificate, error) {
-	data, err := base64.URLEncoding.DecodeString(pub)
+	data, err := unb64u(pub)
 	if err != nil {
 		return nil, err
 	}

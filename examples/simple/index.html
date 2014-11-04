@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="/js/u2f.js"></script>
+	<script type="text/javascript" src="chrome-extension://pfboblefjcgdjicmnffhdgionmgcdmne/u2f-api.js"></script>
+	<title>U2F simple</title>
+</head>
+
+<body>
+	<form>
+	<div>
+		<input type="button" value="Enroll" onclick="u2f_enroll();" />
+		<input type="button" value="Sign-in" onclick="u2f_sign();" />
+	</div>
+	<div id="msg"></div>
+	</form>
+</body>
+
+</html>
