@@ -10,51 +10,58 @@ import (
 	"io"
 )
 
-// input
-type verifyJSON struct {
+// signResponse dictionary from the fido u2f javascript api
+// Serves as input to SignFin()
+type SignResponse struct {
+	KeyHandle     string `json:"keyHandle"`
 	ClientData    string `json:"clientData"`
 	SignatureData string `json:"signatureData"`
 }
 
-type VerifyJSON struct {
-	Touch   byte   `json:"touch"`
+// SignFinResult result of a successful SignFin operation
+type SignFinResult struct {
+	Touch byte `json:"touch"`
+	// Counter current counter value
 	Counter uint32 `json:"counter"`
 }
 
-func (u2f U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
+// SignFin() Finalize a Sign/Login operation. If this succeeds everything is
+// good and the usb token has been validated.
+// r should contain an SignResponse JSON Object.
+func (f U2F) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 	if !u.Enrolled {
-		return vj, fmt.Errorf("User '%s' not enrolled", u.User)
+		return sf, fmt.Errorf("User '%s' not enrolled", u.User)
 	}
 
 	j := json.NewDecoder(r)
-	b := verifyJSON{}
+	b := SignResponse{}
 	err = j.Decode(&b)
 	if err != nil {
-		return vj, err
+		return sf, err
 	}
 
-	d, err := u2f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Devices)
+	d, err := f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Devices)
 	if err != nil {
-		return vj, err
+		return sf, err
 	}
 
-	t, c, err := u2f.validateSignatureData(b, d)
+	t, c, err := f.validateSignResponse(b, d)
 	if err != nil {
-		return vj, err
+		return sf, err
 	}
 
-	err = u2f.Users.PutUser(u)
+	err = f.Users.PutUser(u)
 	if err != nil {
-		return vj, fmt.Errorf("failed to put user")
+		return sf, fmt.Errorf("failed to put user")
 	}
 
-	vj.Touch = t
-	vj.Counter = c
+	sf.Touch = t
+	sf.Counter = c
 
-	return vj, nil
+	return sf, nil
 }
 
-func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter uint32, err error) {
+func (f U2F) validateSignResponse(b SignResponse, d *Device) (up byte, counter uint32, err error) {
 	data, err := unb64u(b.SignatureData)
 	if err != nil {
 		return up, counter, err
@@ -76,7 +83,7 @@ func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter 
 		return up, counter, err
 	}
 	cdHash := sha256.Sum256([]byte(cd))
-	appHash := sha256.Sum256([]byte(u2f.AppID))
+	appHash := sha256.Sum256([]byte(f.AppID))
 
 	var verify []byte
 	verify = append(verify, appHash[:]...)

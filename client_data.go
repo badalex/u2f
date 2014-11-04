@@ -5,37 +5,37 @@ import (
 	"fmt"
 )
 
-type clientDataJSON struct {
+type clientData struct {
 	Typ       string
 	Origin    string
 	Challenge string
 }
 
-func (u2f U2F) validateClientData(typ, clientData string, devs []Device) (dev *Device, err error) {
-	if clientData == "" {
+func (f U2F) validateClientData(typ, cd string, devs []Device) (dev *Device, err error) {
+	if cd == "" {
 		return dev, fmt.Errorf("Missing ClientData")
 	}
 
-	data, err := unb64u(clientData)
+	data, err := unb64u(cd)
 	if err != nil {
 		return dev, err
 	}
 
-	cd := clientDataJSON{}
-	err = json.Unmarshal(data, &cd)
+	c := clientData{}
+	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return dev, err
 	}
 
-	if cd.Typ != typ {
+	if c.Typ != typ {
 		return dev, fmt.Errorf("Typ should be %s", typ)
 	}
-	if cd.Origin != u2f.AppID {
+	if c.Origin != f.AppID {
 		return dev, fmt.Errorf("Origin does not match appID")
 	}
 
 	for idx := range devs {
-		if cd.Challenge == devs[idx].Challenge {
+		if c.Challenge == devs[idx].Challenge {
 			return &devs[idx], nil
 		}
 	}

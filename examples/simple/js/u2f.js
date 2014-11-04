@@ -1,15 +1,17 @@
 (function() {
-	window.u2f_enroll = u2f_enroll;
-	window.u2f_sign = u2f_sign;
+	window.u2fRegister = u2fRegister;
+	window.u2fSign = u2fSign;
 
 	function ajax(url, args, cb) {
 		var aj = new XMLHttpRequest();
 
 		aj.onreadystatechange = function() {
-			if(aj.readyState == 4 && aj.status == 200) {
-				cb(JSON.parse(aj.responseText));
-			} else {
-				msg("failed: "+ aj.responseText);
+			if (aj.readyState == 4) {
+				if (aj.status == 200) {
+					cb(JSON.parse(aj.responseText));
+				} else {
+					msg("failed: " + aj.responseText);
+				}
 			}
 		}
 
@@ -18,51 +20,49 @@
 		aj.send(JSON.stringify(args));
 	}
 
-	function u2f_enroll() {
-		ajax("/enroll", {}, function(r) {
-			msg("touch it to enroll");
+	function u2fRegister() {
+		ajax("/Register", {}, function(r) {
+			msg("touch it to register");
 
 			u2f.register(
-				[r],
-				[],
+				[r], [],
 				function(response) {
-					if(response.errorCode) {
+					if (response.errorCode) {
 						msg("failed to enroll:" + response.errorCode);
 						return
 					}
-					msg("binding...")
-					u2f_bind(response);
+					msg("finalizing/validating registration...")
+					u2fRegisterFin(response);
 				}
 			);
 		});
 	}
 
-	function u2f_bind(enroll) {
-		ajax("/bind", enroll, function(r) {
-			msg("enrolled");
+	function u2fRegisterFin(rr) {
+		ajax("/RegisterFin", rr, function(r) {
+			msg("device registered");
 		});
 	}
 
-	function u2f_sign() {
-		ajax("/sign", {}, function(r) {
+	function u2fSign() {
+		ajax("/Sign", {}, function(r) {
 			msg("touch it to sign in");
 			console.log('sign', r);
 
 			u2f.sign(r, function(response) {
-				console.log(response);
 				if (response.errorCode) {
 					msg(response.errorCode);
 					return;
 				}
 
 				msg("verifying");
-				u2f_verify(response);
+				u2fSignFin(response);
 			}, 5);
 		});
 	}
 
-	function u2f_verify(verify) {
-		ajax("/verify", verify, function() {
+	function u2fSignFin(verify) {
+		ajax("/SignFin", verify, function() {
 			msg("logged in");
 		});
 	}

@@ -9,18 +9,18 @@ import (
 	"io"
 )
 
-type bindJSON struct {
+// RegisterResponse dictionary from the fido u2f javascript api
+// Serves as input to RegisterFin()
+type RegisterResponse struct {
 	ClientData       string `json:"clientData"`
 	RegistrationData string `json:"registrationData"`
 }
 
-func (u2f U2F) Bind(u User, r io.Reader) error {
-	//if u.Enrolled {
-	//	return fmt.Errorf("User '%s' already enrolled", u.User)
-	//}
-
+// RegisterFin finish up, validate and store a Registration.
+// r should contain an RegisterResponse JSON Object.
+func (f U2F) RegisterFin(u User, r io.Reader) error {
 	j := json.NewDecoder(r)
-	b := bindJSON{}
+	b := RegisterResponse{}
 	err := j.Decode(&b)
 	if err != nil {
 		return err
@@ -30,18 +30,18 @@ func (u2f U2F) Bind(u User, r io.Reader) error {
 		return fmt.Errorf("malformed JSON, missing registrationData")
 	}
 
-	d, err := u2f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Devices)
+	d, err := f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Devices)
 	if err != nil {
 		return err
 	}
 
-	err = u2f.validateRegistrationData(b, d)
+	err = f.validateRegisterResponse(b, d)
 	if err != nil {
 		return err
 	}
 
 	u.Enrolled = true
-	err = u2f.Users.PutUser(u)
+	err = f.Users.PutUser(u)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ type cert struct {
 	Raw asn1.RawContent
 }
 
-func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
+func (f U2F) validateRegisterResponse(b RegisterResponse, d *Device) error {
 	data, err := unb64u(b.RegistrationData)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
 		return err
 	}
 
-	app := sha256.Sum256([]byte(u2f.AppID))
+	app := sha256.Sum256([]byte(f.AppID))
 
 	// xxx we already have done this up above
 	cd, err := unb64u(b.ClientData)

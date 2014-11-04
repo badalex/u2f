@@ -81,7 +81,7 @@ func main() {
 		Version: "U2F_V2",
 	}
 
-	http.HandleFunc("/enroll", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/Register", func(w http.ResponseWriter, r *http.Request) {
 		u, err := authUser(mu2f, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -91,30 +91,20 @@ func main() {
 			panic("WTF")
 		}
 
-		mu2f.EnrollHandler(u, w, r)
+		mu2f.RegisterHandler(u, w, r)
 	})
 
-	http.HandleFunc("/bind", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/RegisterFin", func(w http.ResponseWriter, r *http.Request) {
 		u, err := authUser(mu2f, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
 
-		mu2f.BindHandler(u, w, r)
+		mu2f.RegisterFinHandler(u, w, r)
 	})
 
-	http.HandleFunc("/sign", func(w http.ResponseWriter, r *http.Request) {
-		u, err := authUser(mu2f, r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		mu2f.SignHandler(u, w, r)
-	})
-
-	http.HandleFunc("/verify", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/Sign", func(w http.ResponseWriter, r *http.Request) {
 		u, err := authUser(mu2f, r)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -122,6 +112,16 @@ func main() {
 		}
 
 		mu2f.SignHandler(u, w, r)
+	})
+
+	http.HandleFunc("/SignFin", func(w http.ResponseWriter, r *http.Request) {
+		u, err := authUser(mu2f, r)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		mu2f.SignFinHandler(u, w, r)
 	})
 
 	http.HandleFunc("/js/", func(w http.ResponseWriter, r *http.Request) {
