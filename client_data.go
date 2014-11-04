@@ -12,31 +12,34 @@ type clientDataJSON struct {
 	Challenge string
 }
 
-func (u2f U2F) validateClientData(typ, clientData, challenge string) error {
+func (u2f U2F) validateClientData(typ, clientData string, devs []Device) (dev *Device, err error) {
 	if clientData == "" {
-		return fmt.Errorf("Missing ClientData")
+		return dev, fmt.Errorf("Missing ClientData")
 	}
 
 	data, err := base64.URLEncoding.DecodeString(clientData)
 	if err != nil {
-		return err
+		return dev, err
 	}
 
 	cd := clientDataJSON{}
 	err = json.Unmarshal(data, &cd)
 	if err != nil {
-		return err
+		return dev, err
 	}
 
 	if cd.Typ != typ {
-		return fmt.Errorf("Typ should be %s", typ)
-	}
-	if cd.Challenge != challenge {
-		return fmt.Errorf("challenges dont match")
+		return dev, fmt.Errorf("Typ should be %s", typ)
 	}
 	if cd.Origin != u2f.AppID {
-		return fmt.Errorf("Origin does not match appID")
+		return dev, fmt.Errorf("Origin does not match appID")
 	}
 
-	return nil
+	for idx := range devs {
+		if cd.Challenge == devs[idx].Challenge {
+			return &devs[idx], nil
+		}
+	}
+
+	return dev, fmt.Errorf("no matching challenge found")
 }

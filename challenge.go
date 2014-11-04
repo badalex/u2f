@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 )
 
-func (u2f *U2F) Challenge() (string, error) {
+func (u2f U2F) Challenge() (string, error) {
 	c := make([]byte, 32)
 	_, err := rand.Read(c)
 	if err != nil {

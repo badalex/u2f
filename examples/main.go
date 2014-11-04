@@ -10,10 +10,10 @@ import (
 )
 
 func authUser(mu2f *u2f.U2F, r *http.Request) (u2f.User, error) {
-	u, err := mu2f.UserList.GetUser("test")
+	u, err := mu2f.Users.GetUser("test")
 	if err != nil {
-		mu2f.UserList.PutUser(u2f.User{User: "test"})
-		u, err = mu2f.UserList.GetUser("test")
+		mu2f.Users.PutUser(u2f.User{User: "test"})
+		u, err = mu2f.Users.GetUser("test")
 		if err != nil {
 			return u, err
 		}
@@ -58,7 +58,7 @@ func (ud *userDB) GetUser(user string) (u2f.User, error) {
 	return u, nil
 }
 
-func (ud *userDB) PutUser(u u2f.User) {
+func (ud *userDB) PutUser(u u2f.User) error {
 	ud.lock.Lock()
 	defer ud.lock.Unlock()
 
@@ -66,17 +66,19 @@ func (ud *userDB) PutUser(u u2f.User) {
 		ud.Users = make(map[string]u2f.User)
 	}
 	if u.User == "" {
-		panic("wtf")
+		return fmt.Errorf("missing username")
 	}
+
 	ud.Users[u.User] = u
+	return nil
 }
 
 func main() {
 	var udb = userDB{}
 	var mu2f = &u2f.U2F{
-		UserList: &udb,
-		AppID:    "http://localhost:8081",
-		Version:  "U2F_V2",
+		Users:   &udb,
+		AppID:   "http://localhost:8081",
+		Version: "U2F_V2",
 	}
 
 	http.HandleFunc("/enroll", func(w http.ResponseWriter, r *http.Request) {

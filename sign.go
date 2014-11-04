@@ -11,29 +11,33 @@ type SignJSON struct {
 	Version   string `json:"version"`
 }
 
-func (u2f *U2F) Sign(u User) (SignJSON, error) {
+func (u2f U2F) Sign(u User) (r []SignJSON, err error) {
 	if !u.Enrolled {
-		return SignJSON{}, fmt.Errorf("User '%s' is not enrolled", u.User)
-	}
-
-	if u.KeyHandle == "" {
-		return SignJSON{}, fmt.Errorf("User '%s' has no keyhandle", u.User)
+		return r, fmt.Errorf("User '%s' is not enrolled", u.User)
 	}
 
 	c, err := u2f.Challenge()
 	if err != nil {
-		return SignJSON{}, err
+		return r, err
 	}
 
-	u.Challenge = c
-	u2f.UserList.PutUser(u)
+	for i, d := range u.Devices {
+		d.Challenge = c
+		u.Devices[i] = d
 
-	e := SignJSON{
-		KeyHandle: u.KeyHandle,
-		Challenge: c,
-		AppID:     u2f.AppID,
-		Version:   u2f.Version,
+		r = append(r, SignJSON{
+			KeyHandle: d.KeyHandle,
+			Challenge: c,
+			AppID:     u2f.AppID,
+			Version:   u2f.Version,
+		})
 	}
-	return e, nil
+
+	err = u2f.Users.PutUser(u)
+	if err != nil {
+		return r, err
+	}
+
+	return r, nil
 
 }

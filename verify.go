@@ -17,18 +17,14 @@ type verifyJSON struct {
 	SignatureData string `json:"signatureData"`
 }
 
-// output
 type VerifyJSON struct {
 	Touch   byte   `json:"touch"`
 	Counter uint32 `json:"counter"`
 }
 
-func (u2f *U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
+func (u2f U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 	if !u.Enrolled {
 		return vj, fmt.Errorf("User '%s' not enrolled", u.User)
-	}
-	if u.Challenge == "" {
-		return vj, fmt.Errorf("No SignChallenge")
 	}
 
 	buf := make([]byte, len("data="))
@@ -47,14 +43,19 @@ func (u2f *U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 		return vj, err
 	}
 
-	err = u2f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Challenge)
+	d, err := u2f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Devices)
 	if err != nil {
 		return vj, err
 	}
 
-	t, c, err := u2f.validateSignatureData(b, u)
+	t, c, err := u2f.validateSignatureData(b, d)
 	if err != nil {
 		return vj, err
+	}
+
+	err = u2f.Users.PutUser(u)
+	if err != nil {
+		return vj, fmt.Errorf("failed to put user")
 	}
 
 	vj.Touch = t
@@ -63,7 +64,7 @@ func (u2f *U2F) Verify(u User, r io.Reader) (vj VerifyJSON, err error) {
 	return vj, nil
 }
 
-func (u2f *U2F) validateSignatureData(b verifyJSON, u User) (up byte, counter uint32, err error) {
+func (u2f U2F) validateSignatureData(b verifyJSON, d *Device) (up byte, counter uint32, err error) {
 	data, err := base64.URLEncoding.DecodeString(b.SignatureData)
 	if err != nil {
 		return up, counter, err
@@ -92,7 +93,7 @@ func (u2f *U2F) validateSignatureData(b verifyJSON, u User) (up byte, counter ui
 	verify = append(verify, data[0:5]...)
 	verify = append(verify, cdHash[:]...)
 
-	cert, err := pubKeyCert(u.PubKey)
+	cert, err := pubKeyCert(d.PubKey)
 	if err != nil {
 		return up, counter, err
 	}
@@ -102,12 +103,10 @@ func (u2f *U2F) validateSignatureData(b verifyJSON, u User) (up byte, counter ui
 		return up, counter, err
 	}
 
-	if u.Counter >= counter {
+	if d.Counter >= counter {
 		return up, counter, fmt.Errorf("Counter mismatch")
 	}
-
-	u.Counter = counter
-	u2f.UserList.PutUser(u)
+	d.Counter = counter
 
 	return up, counter, nil
 }

@@ -10,24 +10,28 @@ type EnrollJSON struct {
 	Challenge string `json:"challenge"`
 }
 
-func (u2f *U2F) Enroll(u User) (EnrollJSON, error) {
+func (u2f U2F) Enroll(u User) (r EnrollJSON, err error) {
 	if u.Enrolled {
-		return EnrollJSON{}, fmt.Errorf("User '%s' already enrolled", u.User)
+		return r, fmt.Errorf("User '%s' already enrolled", u.User)
 	}
 
 	c, err := u2f.Challenge()
 	if err != nil {
-		return EnrollJSON{}, err
+		return r, err
 	}
 
-	u.Challenge = c
-	u2f.UserList.PutUser(u)
+	u.Devices = append(u.Devices, Device{
+		Challenge: c,
+	})
+	err = u2f.Users.PutUser(u)
+	if err != nil {
+		return r, err
+	}
 
-	e := EnrollJSON{
+	r = EnrollJSON{
 		Challenge: c,
 		AppID:     u2f.AppID,
 		Version:   u2f.Version,
 	}
-
-	return e, nil
+	return r, nil
 }

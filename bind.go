@@ -15,14 +15,10 @@ type bindJSON struct {
 	RegistrationData string `json:"registrationData"`
 }
 
-func (u2f *U2F) Bind(u User, r io.Reader) error {
-	if u.Enrolled {
-		return fmt.Errorf("User '%s' already enrolled", u.User)
-	}
-
-	if u.Challenge == "" {
-		return fmt.Errorf("user has not started enroll")
-	}
+func (u2f U2F) Bind(u User, r io.Reader) error {
+	//if u.Enrolled {
+	//	return fmt.Errorf("User '%s' already enrolled", u.User)
+	//}
 
 	buf := make([]byte, len("data="))
 	n, err := r.Read(buf)
@@ -44,12 +40,18 @@ func (u2f *U2F) Bind(u User, r io.Reader) error {
 		return fmt.Errorf("malformed JSON, missing registrationData")
 	}
 
-	err = u2f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Challenge)
+	d, err := u2f.validateClientData("navigator.id.finishEnrollment", b.ClientData, u.Devices)
 	if err != nil {
 		return err
 	}
 
-	err = u2f.validateRegistrationData(b, u)
+	err = u2f.validateRegistrationData(b, d)
+	if err != nil {
+		return err
+	}
+
+	u.Enrolled = true
+	err = u2f.Users.PutUser(u)
 	if err != nil {
 		return err
 	}
@@ -57,13 +59,13 @@ func (u2f *U2F) Bind(u User, r io.Reader) error {
 	return nil
 }
 
-var PubKeyLen = 65
+var pubKeyLen = 65
 
 type cert struct {
 	Raw asn1.RawContent
 }
 
-func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
+func (u2f U2F) validateRegistrationData(b bindJSON, d *Device) error {
 	data, err := base64.URLEncoding.DecodeString(b.RegistrationData)
 	if err != nil {
 		return err
@@ -74,13 +76,13 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 		return fmt.Errorf("invalid format, expected 0x05: %x", data[0])
 	}
 
-	pubKey := data[1 : PubKeyLen+1]
+	pubKey := data[1 : pubKeyLen+1]
 	pubDer, err := pubKeyDer(pubKey)
 	if err != nil {
 		return err
 	}
 
-	data = data[1+PubKeyLen : len(data)]
+	data = data[1+pubKeyLen : len(data)]
 
 	khLen := data[0]
 	keyHandle := data[1 : khLen+1]
@@ -119,12 +121,10 @@ func (u2f *U2F) validateRegistrationData(b bindJSON, u User) error {
 		return err
 	}
 
-	u.KeyHandle = base64.URLEncoding.EncodeToString(keyHandle)
-	u.Cert = base64.URLEncoding.EncodeToString(cert.Raw)
-	u.PubKey = base64.URLEncoding.EncodeToString(pubDer)
-	u.Challenge = ""
-	u.Enrolled = true
-	u2f.UserList.PutUser(u)
+	d.KeyHandle = base64.URLEncoding.EncodeToString(keyHandle)
+	d.Cert = base64.URLEncoding.EncodeToString(cert.Raw)
+	d.PubKey = base64.URLEncoding.EncodeToString(pubDer)
+	d.Challenge = ""
 
 	return nil
 }
