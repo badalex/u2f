@@ -10,7 +10,7 @@ import (
 	"io"
 )
 
-// signResponse dictionary from the fido u2f javascript api
+// signResponse dictionary from the fido u2f javascript api.
 // Serves as input to SignFin()
 type SignResponse struct {
 	KeyHandle     string `json:"keyHandle"`
@@ -18,7 +18,7 @@ type SignResponse struct {
 	SignatureData string `json:"signatureData"`
 }
 
-// SignFinResult result of a successful SignFin operation
+// SignFinResult is the result of a successful SignFin operation.
 type SignFinResult struct {
 	Touch byte `json:"touch"`
 	// Counter current counter value
@@ -28,7 +28,7 @@ type SignFinResult struct {
 // SignFin() Finalize a Sign/Login operation. If this succeeds everything is
 // good and the usb token has been validated.
 // r should contain an SignResponse JSON Object.
-func (f U2F) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
+func (s U2FServer) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 	if !u.Enrolled {
 		return sf, fmt.Errorf("User '%s' not enrolled", u.User)
 	}
@@ -40,17 +40,17 @@ func (f U2F) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 		return sf, err
 	}
 
-	d, err := f.validateClientData("navigator.id.getAssertion", b.ClientData, u.Devices)
+	d, err := s.validateClientData("navigator.id.getAssertion", b.ClientData, u.Devices)
 	if err != nil {
 		return sf, err
 	}
 
-	t, c, err := f.validateSignResponse(b, d)
+	t, c, err := s.validateSignResponse(b, d)
 	if err != nil {
 		return sf, err
 	}
 
-	err = f.Users.PutUser(u)
+	err = s.Users.PutUser(u)
 	if err != nil {
 		return sf, fmt.Errorf("failed to put user")
 	}
@@ -61,7 +61,7 @@ func (f U2F) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 	return sf, nil
 }
 
-func (f U2F) validateSignResponse(b SignResponse, d *Device) (up byte, counter uint32, err error) {
+func (s U2FServer) validateSignResponse(b SignResponse, d *Device) (up byte, counter uint32, err error) {
 	data, err := unb64u(b.SignatureData)
 	if err != nil {
 		return up, counter, err
@@ -83,7 +83,7 @@ func (f U2F) validateSignResponse(b SignResponse, d *Device) (up byte, counter u
 		return up, counter, err
 	}
 	cdHash := sha256.Sum256([]byte(cd))
-	appHash := sha256.Sum256([]byte(f.AppID))
+	appHash := sha256.Sum256([]byte(s.AppID))
 
 	var verify []byte
 	verify = append(verify, appHash[:]...)

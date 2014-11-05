@@ -9,8 +9,8 @@ type RegisterRequest struct {
 
 // Register a user to a device. Returns a RegisterRequest Object for the device
 // to sign. The result of which is passed to RegisterFin().
-func (f U2F) Register(u User) (r RegisterRequest, err error) {
-	c, err := challenge()
+func (s U2FServer) Register(u User) (r RegisterRequest, err error) {
+	c, err := s.Challenge.New()
 	if err != nil {
 		return r, err
 	}
@@ -18,15 +18,15 @@ func (f U2F) Register(u User) (r RegisterRequest, err error) {
 	u.Devices = append(u.Devices, Device{
 		Challenge: c,
 	})
-	err = f.Users.PutUser(u)
+	err = s.Users.PutUser(u)
 	if err != nil {
 		return r, err
 	}
 
 	r = RegisterRequest{
-		Version:   f.Version,
+		Version:   s.Version,
 		Challenge: c,
-		AppID:     f.AppID,
+		AppID:     s.AppID,
 	}
 	return r, nil
 }

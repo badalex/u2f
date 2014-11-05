@@ -1,7 +1,7 @@
-U2F
+U2F Server
 ========
 
-Go based U2F (Universal 2nd Factor) based on [fido](https://fidoalliance.org/).
+Go based U2F Server (Universal 2nd Factor). Specs at [fido](https://fidoalliance.org/).
 
 API is not stable yet. Its getting close...
 

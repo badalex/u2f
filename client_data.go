@@ -11,7 +11,7 @@ type clientData struct {
 	Challenge string
 }
 
-func (f U2F) validateClientData(typ, cd string, devs []Device) (dev *Device, err error) {
+func (s U2FServer) validateClientData(typ, cd string, devs []Device) (dev *Device, err error) {
 	if cd == "" {
 		return dev, fmt.Errorf("Missing ClientData")
 	}
@@ -30,7 +30,7 @@ func (f U2F) validateClientData(typ, cd string, devs []Device) (dev *Device, err
 	if c.Typ != typ {
 		return dev, fmt.Errorf("Typ should be %s", typ)
 	}
-	if c.Origin != f.AppID {
+	if c.Origin != s.AppID {
 		return dev, fmt.Errorf("Origin does not match appID")
 	}
 

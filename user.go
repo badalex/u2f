@@ -7,7 +7,7 @@ type User struct {
 	// primary key here to make updating easier.
 	Priv interface{}
 
-	// User containts the username
+	// User contains the username
 	User string
 
 	// Enrolled holds if they have signed up

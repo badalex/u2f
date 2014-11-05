@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,34 +10,7 @@ import (
 	"github.com/badalex/u2f"
 )
 
-func authUser(mu2f *u2f.U2F, r *http.Request) (u2f.User, error) {
-	u, err := mu2f.Users.GetUser("test")
-	if err != nil {
-		mu2f.Users.PutUser(u2f.User{User: "test"})
-		u, err = mu2f.Users.GetUser("test")
-		if err != nil {
-			return u, err
-		}
-	}
-
-	return u, nil
-
-	// for now we hardcode test, a real example might look like:
-	//	user := r.URL.Query()["username"]
-	//	if user == "" {
-	//		http.Error(w, fmt.Sprintf("no username passed"), 500)
-	//		return ""
-	//	}
-	//
-	//	if user[0] == "" {
-	//		http.Error(w, fmt.Sprintf("no username passed"), 500)
-	//		return ""
-	//	}
-	//
-	//	// XXX check password
-	//	return user[0]
-}
-
+// userDB - dead simple in memory u2f.Users interface implantation
 type userDB struct {
 	Users map[string]u2f.User
 	lock  sync.Mutex
@@ -73,55 +47,72 @@ func (ud *userDB) PutUser(u u2f.User) error {
 	return nil
 }
 
-func main() {
-	var udb = userDB{}
-	var mu2f = &u2f.U2F{
-		Users:   &udb,
-		AppID:   "https://gou2f.com:8079",
-		Version: "U2F_V2",
-	}
+// normally you would want to do things like authenticate the user/password or
+// see if they have a session here
+func authUser(s u2f.U2FServer, w http.ResponseWriter, r *http.Request, cb func(u u2f.User)) {
+	u, err := s.Users.GetUser("test")
 
-	http.HandleFunc("/Register", func(w http.ResponseWriter, r *http.Request) {
-		u, err := authUser(mu2f, r)
+	// don't have that user yet? just add them for now
+	if err != nil {
+		u.User = "test"
+		err = s.Users.PutUser(u)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		if u.User == "" {
-			panic("WTF")
-		}
+	}
 
-		mu2f.RegisterHandler(u, w, r)
+	cb(u)
+}
+
+func resp(w http.ResponseWriter, e interface{}, err error) {
+	if err != nil {
+		http.Error(w, fmt.Sprintf("bind: %s", err), 500)
+		return
+	}
+
+	j := json.NewEncoder(w)
+	err = j.Encode(e)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to make json: %s", err), 500)
+	}
+}
+
+func main() {
+	s := u2f.StdU2FServer(&userDB{}, "https://gou2f.com:8079")
+
+	http.HandleFunc("/Register", func(w http.ResponseWriter, r *http.Request) {
+		authUser(s, w, r, func(u u2f.User) {
+			e, err := s.Register(u)
+			resp(w, e, err)
+		})
 	})
 
 	http.HandleFunc("/RegisterFin", func(w http.ResponseWriter, r *http.Request) {
-		u, err := authUser(mu2f, r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
+		authUser(s, w, r, func(u u2f.User) {
+			err := s.RegisterFin(u, r.Body)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("bind: %s", err), 500)
+				return
+			}
 
-		mu2f.RegisterFinHandler(u, w, r)
+			w.Header().Set("Content-Type", "text/json")
+			fmt.Fprintf(w, "{\"ok\": true}")
+		})
 	})
 
 	http.HandleFunc("/Sign", func(w http.ResponseWriter, r *http.Request) {
-		u, err := authUser(mu2f, r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		mu2f.SignHandler(u, w, r)
+		authUser(s, w, r, func(u u2f.User) {
+			e, err := s.Sign(u)
+			resp(w, e, err)
+		})
 	})
 
 	http.HandleFunc("/SignFin", func(w http.ResponseWriter, r *http.Request) {
-		u, err := authUser(mu2f, r)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		mu2f.SignFinHandler(u, w, r)
+		authUser(s, w, r, func(u u2f.User) {
+			e, err := s.SignFin(u, r.Body)
+			resp(w, e, err)
+		})
 	})
 
 	http.HandleFunc("/js/", func(w http.ResponseWriter, r *http.Request) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// SignRequest dictionary from the fido u2f javascript api spec
+// SignRequest dictionary from the fido u2f javascript api spec.
 // Result of a valid Sign() operation
 type SignRequest struct {
 	Version   string `json:"version"`
@@ -15,12 +15,12 @@ type SignRequest struct {
 
 // Sign() Returns SignRequests for the device to Sign. The result should then
 // be passed to SignFin() for validation.
-func (f U2F) Sign(u User) (r []SignRequest, err error) {
+func (s U2FServer) Sign(u User) (r []SignRequest, err error) {
 	if !u.Enrolled {
 		return r, fmt.Errorf("User '%s' is not enrolled", u.User)
 	}
 
-	c, err := challenge()
+	c, err := s.Challenge.New()
 	if err != nil {
 		return r, err
 	}
@@ -30,14 +30,14 @@ func (f U2F) Sign(u User) (r []SignRequest, err error) {
 		u.Devices[i] = d
 
 		r = append(r, SignRequest{
-			Version:   f.Version,
+			Version:   s.Version,
 			Challenge: c,
 			KeyHandle: d.KeyHandle,
-			AppID:     f.AppID,
+			AppID:     s.AppID,
 		})
 	}
 
-	err = f.Users.PutUser(u)
+	err = s.Users.PutUser(u)
 	if err != nil {
 		return r, err
 	}
