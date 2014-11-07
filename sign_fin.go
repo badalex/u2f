@@ -10,7 +10,7 @@ import (
 	"io"
 )
 
-// signResponse dictionary from the fido u2f javascript api.
+// SignResponse dictionary from the fido u2f javascript api.
 // Serves as input to SignFin()
 type SignResponse struct {
 	KeyHandle     string `json:"keyHandle"`
@@ -25,7 +25,7 @@ type SignFinResult struct {
 	Counter uint32 `json:"counter"`
 }
 
-// SignFin() Finalize a Sign/Login operation. If this succeeds everything is
+// SignFin Finalize a Sign/Login operation. If this succeeds everything is
 // good and the usb token has been validated.
 // r should contain an SignResponse JSON Object.
 func (s U2FServer) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {

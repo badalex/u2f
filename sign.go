@@ -13,14 +13,14 @@ type SignRequest struct {
 	AppID     string `json:"appId"`
 }
 
-// Sign() Returns SignRequests for the device to Sign. The result should then
+// Sign Returns SignRequests for the device to Sign. The result should then
 // be passed to SignFin() for validation.
 func (s U2FServer) Sign(u User) (r []SignRequest, err error) {
 	if !u.Enrolled {
 		return r, fmt.Errorf("User '%s' is not enrolled", u.User)
 	}
 
-	c, err := s.Challenge.New()
+	c, err := challenge()
 	if err != nil {
 		return r, err
 	}

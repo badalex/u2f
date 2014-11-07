@@ -45,10 +45,9 @@ func (ud *userDB) PutUser(u User) error {
 func TestIt(t *testing.T) {
 	var udb = userDB{}
 	var s = U2FServer{
-		Users:     &udb,
-		AppID:     "http://demo.example.com",
-		Version:   "U2F_V2",
-		Challenge: RandChallenge{},
+		Users:   &udb,
+		AppID:   "http://demo.example.com",
+		Version: "U2F_V2",
 	}
 
 	s.Users.PutUser(User{User: "test"})

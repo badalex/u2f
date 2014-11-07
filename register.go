@@ -10,7 +10,7 @@ type RegisterRequest struct {
 // Register a user to a device. Returns a RegisterRequest Object for the device
 // to sign. The result of which is passed to RegisterFin().
 func (s U2FServer) Register(u User) (r RegisterRequest, err error) {
-	c, err := s.Challenge.New()
+	c, err := challenge()
 	if err != nil {
 		return r, err
 	}

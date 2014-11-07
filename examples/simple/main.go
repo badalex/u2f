@@ -10,7 +10,7 @@ import (
 	"github.com/badalex/u2f"
 )
 
-// userDB - dead simple in memory u2f.Users interface implantation
+// userDB - dead simple in memory u2f.Users interface implementation
 type userDB struct {
 	Users map[string]u2f.User
 	lock  sync.Mutex

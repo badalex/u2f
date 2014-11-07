@@ -1,6 +1,6 @@
 package u2f
 
-// A User
+// User Hold a User
 type User struct {
 	// Priv is yours to do what you please with.
 	// For example, if you have an sql backend you could store the tuple or
@@ -17,7 +17,7 @@ type User struct {
 	Devices []Device
 }
 
-// Holds a U2F device
+// Device Holds a U2F device associated with a user
 type Device struct {
 	//  Priv is yours to do what you please with
 	Priv      interface{}
