@@ -49,7 +49,7 @@ func (ud *userDB) PutUser(u u2f.User) error {
 
 // normally you would want to do things like authenticate the user/password or
 // see if they have a session here
-func authUser(s u2f.U2FServer, w http.ResponseWriter, r *http.Request, cb func(u u2f.User)) {
+func authUser(s u2f.Server, w http.ResponseWriter, r *http.Request, cb func(u u2f.User)) {
 	u, err := s.Users.GetUser("test")
 
 	// don't have that user yet? just add them for now
@@ -79,7 +79,7 @@ func resp(w http.ResponseWriter, e interface{}, err error) {
 }
 
 func main() {
-	s := u2f.StdU2FServer(&userDB{}, "https://gou2f.com:8079")
+	s := u2f.StdServer(&userDB{}, "https://gou2f.com:8079")
 
 	http.HandleFunc("/Register", func(w http.ResponseWriter, r *http.Request) {
 		authUser(s, w, r, func(u u2f.User) {

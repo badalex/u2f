@@ -1,15 +1,15 @@
 package u2f
 
-// U2FServer
-type U2FServer struct {
+// Server
+type Server struct {
 	Users   UserDB
 	AppID   string
 	Version string
 }
 
-// StdU2FServer standard server
-func StdU2FServer(udb UserDB, appID string) U2FServer {
-	return U2FServer{
+// StdServer standard server
+func StdServer(udb UserDB, appID string) Server {
+	return Server{
 		Users:   udb,
 		AppID:   appID,
 		Version: "U2F_V2",

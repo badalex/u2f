@@ -42,9 +42,9 @@ func (ud *userDB) PutUser(u User) error {
 	return nil
 }
 
-func TestIt(t *testing.T) {
+func TestAll(t *testing.T) {
 	var udb = userDB{}
-	var s = U2FServer{
+	var s = Server{
 		Users:   &udb,
 		AppID:   "http://demo.example.com",
 		Version: "U2F_V2",
@@ -102,11 +102,103 @@ func TestIt(t *testing.T) {
 	}
 }
 
-func getUser(s *U2FServer, t *testing.T) User {
+func getUser(s *Server, t *testing.T) User {
 	u, err := s.Users.GetUser("test")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return u
 
+}
+
+func TestClientData(t *testing.T) {
+	var err error
+	s := StdServer(nil, "")
+
+	_, err = s.validateClientData("", "", nil)
+	nonNil(t, err)
+
+	// not base64
+	_, err = s.validateClientData("", "{}", nil)
+	nonNil(t, err)
+
+	// not json
+	_, err = s.validateClientData("", b64u([]byte("asdf")), nil)
+	nonNil(t, err)
+
+	// typ mismatch
+	_, err = s.validateClientData("", b64u([]byte(`{"typ": "test"}`)), nil)
+	nonNil(t, err)
+
+	// origin mismatch
+	_, err = s.validateClientData("test", b64u([]byte(`{"typ": "test"}`)), nil)
+	nonNil(t, err)
+
+	// origin mismatch
+	_, err = s.validateClientData("test", b64u([]byte(`{"typ": "test", "origin": "asdf"}`)), nil)
+	nonNil(t, err)
+
+	// no devices
+	_, err = s.validateClientData("test", b64u([]byte(`{"typ": "test", "origin": ""}`)), nil)
+	nonNil(t, err)
+
+	// no matching challenge
+	_, err = s.validateClientData("test", b64u([]byte(`{typ: "test", "origin": "", "challenge": "a"}`)), []Device{Device{Challenge: "b"}})
+	nonNil(t, err)
+
+	// no devices
+	_, err = s.validateClientData("test", b64u([]byte(`{typ: "test", "origin": "", "challenge": "a"}`)), []Device{Device{Challenge: "a"}})
+	nonNil(t, err)
+}
+
+func TestRegister(t *testing.T) {
+	var err error
+	udb := &userDB{}
+	s := StdServer(nil, "test")
+	s.Users = udb
+
+	// bad challenge
+	_, err = s.Register(User{})
+	nonNil(t, err)
+
+	// no username, PutUser fails
+	_, err = s.Register(User{})
+	nonNil(t, err)
+
+	r, err := s.Register(User{User: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if r.Version != s.Version {
+		t.Fatal("version mismatch")
+	}
+	if r.Challenge == "" {
+		t.Fatal("no challenge")
+	}
+	if r.AppID != "test" {
+		t.Fatal("AppId mismatch")
+	}
+
+	u, err := s.Users.GetUser("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if u.User != "test" {
+		t.Fatal("failed to put user")
+	}
+	if len(udb.Users["test"].Devices) != 1 {
+		t.Fatal("strange number of devices")
+	}
+	if udb.Users["test"].Devices[0].Challenge != r.Challenge {
+		t.Fatal("challenge mismatch")
+	}
+}
+
+func nonNil(t *testing.T, n interface{}) {
+	if n == nil {
+		panic("should be nil")
+		t.Fatalf("Should be nil: %+v", n)
+	}
 }

@@ -28,7 +28,7 @@ type SignFinResult struct {
 // SignFin Finalize a Sign/Login operation. If this succeeds everything is
 // good and the usb token has been validated.
 // r should contain an SignResponse JSON Object.
-func (s U2FServer) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
+func (s Server) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 	if !u.Enrolled {
 		return sf, fmt.Errorf("User '%s' not enrolled", u.User)
 	}
@@ -61,7 +61,7 @@ func (s U2FServer) SignFin(u User, r io.Reader) (sf SignFinResult, err error) {
 	return sf, nil
 }
 
-func (s U2FServer) validateSignResponse(b SignResponse, d *Device) (up byte, counter uint32, err error) {
+func (s Server) validateSignResponse(b SignResponse, d *Device) (up byte, counter uint32, err error) {
 	data, err := unb64u(b.SignatureData)
 	if err != nil {
 		return up, counter, err

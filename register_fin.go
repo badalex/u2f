@@ -18,7 +18,7 @@ type RegisterResponse struct {
 
 // RegisterFin finish up, validate and store a Registration.
 // r should contain an RegisterResponse JSON Object.
-func (s U2FServer) RegisterFin(u User, r io.Reader) error {
+func (s Server) RegisterFin(u User, r io.Reader) error {
 	j := json.NewDecoder(r)
 	b := RegisterResponse{}
 	err := j.Decode(&b)
@@ -55,7 +55,7 @@ type cert struct {
 	Raw asn1.RawContent
 }
 
-func (s U2FServer) validateRegisterResponse(b RegisterResponse, d *Device) error {
+func (s Server) validateRegisterResponse(b RegisterResponse, d *Device) error {
 	data, err := unb64u(b.RegistrationData)
 	if err != nil {
 		return err

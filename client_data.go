@@ -11,7 +11,7 @@ type clientData struct {
 	Challenge string
 }
 
-func (s U2FServer) validateClientData(typ, cd string, devs []Device) (dev *Device, err error) {
+func (s Server) validateClientData(typ, cd string, devs []Device) (dev *Device, err error) {
 	if cd == "" {
 		return dev, fmt.Errorf("Missing ClientData")
 	}
